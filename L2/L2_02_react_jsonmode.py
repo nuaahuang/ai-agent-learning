@@ -5,9 +5,12 @@ from datetime import datetime
 from enum import Enum
 from pydantic import BaseModel, Field
 import asyncio
+import os
+from dotenv import load_dotenv
 
-API_KEY = ""
-BASE_URL = "https://api.deepseek.com"
+load_dotenv()
+API_KEY = os.getenv("API_KEY", "")
+BASE_URL = os.getenv("BASE_URL", "https://api.deepseek.com")
 
 def search_tool(query: str) -> str:
     """模拟搜索工具"""

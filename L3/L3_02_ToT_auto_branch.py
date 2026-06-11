@@ -6,10 +6,13 @@ from pydantic import BaseModel, Field
 import asyncio
 from dataclasses import dataclass
 from enum import Enum
+import os
+from dotenv import load_dotenv
 
-API_KEY = ""
-BASE_URL = "https://api.deepseek.com"
-MODEL = "deepseek-chat"
+load_dotenv()
+API_KEY = os.getenv("API_KEY", "")
+BASE_URL = os.getenv("BASE_URL", "https://api.deepseek.com")
+MODEL = os.getenv("MODEL", "deepseek-chat")
 
 # ========================
 # 2. 工具定义

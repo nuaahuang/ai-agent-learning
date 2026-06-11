@@ -1,11 +1,13 @@
 import httpx
 import json
 from typing import List, Dict, Any
+import os
+from dotenv import load_dotenv
 
-API_KEY = ""
-BASE_URL = "https://api.deepseek.com"
-
-MODEL_NAME = "deepseek-chat"
+load_dotenv()
+API_KEY = os.getenv("API_KEY", "")
+BASE_URL = os.getenv("BASE_URL", "https://api.deepseek.com")
+MODEL_NAME = os.getenv("MODEL", "deepseek-chat")
 
 def get_weather(location: str) -> str:
     """

@@ -1,8 +1,12 @@
 import httpx
 import json
+import os
+from dotenv import load_dotenv
 
-API_KEY = ""
-BASE_URL = "https://api.deepseek.com"
+load_dotenv()
+API_KEY = os.getenv("API_KEY", "")
+BASE_URL = os.getenv("BASE_URL", "https://api.deepseek.com")
+MODEL = os.getenv("MODEL", "deepseek-chat")
 
 async def chat_completion_bare(messages: str):
     async with httpx.AsyncClient() as client:
@@ -13,7 +17,7 @@ async def chat_completion_bare(messages: str):
                 "Content-Type": "application/json",
             },
             data=json.dumps({
-                "model": "deepseek-chat",
+                "model": MODEL,
                 "messages": messages,
                 "temperature": 0.7,
             }),

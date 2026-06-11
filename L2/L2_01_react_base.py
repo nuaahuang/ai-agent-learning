@@ -3,9 +3,12 @@ import json
 from typing import Dict, Any, List, Optional
 import re
 from datetime import datetime
+import os
+from dotenv import load_dotenv
 
-API_KEY = ""
-BASE_URL = "https://api.deepseek.com"
+load_dotenv()
+API_KEY = os.getenv("API_KEY", "")
+BASE_URL = os.getenv("BASE_URL", "https://api.deepseek.com")
 
 def search_tool(query: str) -> str:
     """模拟搜索工具"""

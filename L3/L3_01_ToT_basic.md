@@ -174,21 +174,6 @@ def _execute_action(decision):
 
 ---
 
-## 📁 文件结构
-
-```
-L3/
-├── L3_01_ToT.py              # 基础版（本文件）
-├── L3_01_ToT.md              # 本说明文档
-├── L3_01_learn.md            # 学习笔记
-├── L3_02_ToT_auto_branch.py  # 自动分支策略版
-├── L3_02_ToT_auto_branch.md  # 自动分支版说明
-├── L3_03_ToT_optimized.py    # 优化版
-└── L3_03_ToT_optimized.md    # 优化版说明
-```
-
----
-
 ## 🎯 使用方法
 
 ```python

@@ -229,6 +229,47 @@ class DebatingAgent:
     async def close(self):
         await self.client.aclose()
 
+class ModeratorAgent(DebatingAgent):
+    def __init__(self, agent_id: str, name: str):
+        super().__init__(agent_id, name, DebateRole.MODERATOR)
+    
+    async def introduce_topic(self, topic: DebateTopic) -> str:
+        """介绍辩论主题"""
+        system_prompt = """你是一位专业的辩论主持人。请用正式、中立的语言介绍辩论主题。
+        
+输出格式：
+开场白: [你的开场介绍]
+"""
+        
+        prompt = f"""辩论主题: {topic.question}
+正方立场: {topic.pro_position}
+反方立场: {topic.con_position}
+
+请介绍本次辩论。
+"""
+        
+        response = await self._call_ai(prompt, system_prompt)
+        
+        if "开场白:" in response:
+            return response.replace("开场白:", "").strip()
+        return response.strip()
+    
+    async def announce_round(self, round_num: int, max_rounds: int) -> str:
+        """宣布辩论轮次"""
+        return f"\n{'='*80}\n⚔️ 第 {round_num} 轮辩论 (共 {max_rounds} 轮)\n{'='*80}"
+    
+    async def announce_phase(self, phase: str) -> str:
+        """宣布辩论阶段"""
+        phase_names = {
+            "opening": "【开场陈述】",
+            "argument": "【论点陈述】",
+            "counter": "【反驳阶段】",
+            "rebuttal": "【再反驳阶段】",
+            "closing": "【总结陈词】",
+            "judgment": "【评委裁决】"
+        }
+        return f"\n{'='*80}\n🎯 {phase_names.get(phase, f'【{phase}】')}\n{'='*80}"
+
 class JudgeAgent(DebatingAgent):
     def __init__(self, agent_id: str, name: str):
         super().__init__(agent_id, name, DebateRole.JUDGE)
@@ -327,21 +368,27 @@ class DebateManager:
         return topic
     
     async def start_debate(self, topic_id: str, pro_agent: DebatingAgent, 
-                          con_agent: DebatingAgent, judge_agent: JudgeAgent,
-                          max_rounds: int = 2) -> DebateResult:
+                          con_agent: DebatingAgent, moderator_agent: ModeratorAgent,
+                          judge_agent: JudgeAgent, max_rounds: int = 2) -> DebateResult:
         topic = self.topics.get(topic_id)
         if not topic:
             print(f"⚠️ 辩论主题不存在: {topic_id}")
             return None
         
         print(f"\n{'='*80}")
-        print(f"🎤 开始辩论: {topic.question}")
+        print(f"🎤 辩论主持人: {moderator_agent.name}")
+        print('='*80)
+        
+        introduction = await moderator_agent.introduce_topic(topic)
+        print(f"\n🎙️ {moderator_agent.name}: {introduction[:150]}...")
+        
+        print(f"\n{'='*80}")
         print(f"正方立场: {topic.pro_position}")
         print(f"反方立场: {topic.con_position}")
         print(f"预计轮数: {max_rounds}")
         print('='*80)
         
-        print(f"\n🎬 【开场陈述】")
+        print(f"\n{await moderator_agent.announce_phase('opening')}")
         print(f"📢 正方 ({pro_agent.name}):")
         opening_pro = await pro_agent.present_argument(topic)
         topic.arguments.append(opening_pro)
@@ -355,9 +402,7 @@ class DebateManager:
         print(f"论据: {opening_con.evidence[:100]}...")
         
         for round_num in range(max_rounds):
-            print(f"\n{'='*80}")
-            print(f"⚔️ 第 {round_num + 1} 轮辩论")
-            print('='*80)
+            print(f"\n{await moderator_agent.announce_round(round_num + 1, max_rounds)}")
             
             print(f"\n📢 正方 ({pro_agent.name}) 提出论点:")
             pro_arg = await pro_agent.present_argument(topic)
@@ -380,9 +425,7 @@ class DebateManager:
             print(f"论据: {pro_rebuttal.evidence[:100]}...")
             print(f"置信度: {pro_rebuttal.confidence:.2f}")
         
-        print(f"\n{'='*80}")
-        print(f"🎯 【总结陈词】")
-        print('='*80)
+        print(f"\n{await moderator_agent.announce_phase('closing')}")
         
         print(f"\n📢 正方 ({pro_agent.name}) 总结:")
         pro_closing = await pro_agent.closing_statement(topic)
@@ -392,9 +435,7 @@ class DebateManager:
         con_closing = await con_agent.closing_statement(topic)
         print(con_closing[:200] + "..." if len(con_closing) > 200 else con_closing)
         
-        print(f"\n{'='*80}")
-        print(f"⚖️ 【评委裁决】")
-        print('='*80)
+        print(f"\n{await moderator_agent.announce_phase('judgment')}")
         
         result = await judge_agent.judge_debate(topic, pro_agent, con_agent)
         
@@ -443,11 +484,13 @@ async def main():
     
     pro_agent = DebatingAgent("agent_pro", "人工智能伦理专家", DebateRole.PRO)
     con_agent = DebatingAgent("agent_con", "法律专家", DebateRole.CON)
+    moderator_agent = ModeratorAgent("agent_mod", "专业辩论主持人")
     judge_agent = JudgeAgent("agent_judge", "资深辩论评委")
     
     print(f"\n🤖 辩论参与方:")
     print(f"  - 正方: {pro_agent.name}")
     print(f"  - 反方: {con_agent.name}")
+    print(f"  - 主持人: {moderator_agent.name}")
     print(f"  - 评委: {judge_agent.name}")
     
     print("\n" + "="*80)
@@ -466,6 +509,7 @@ async def main():
         topic_id=topic.id,
         pro_agent=pro_agent,
         con_agent=con_agent,
+        moderator_agent=moderator_agent,
         judge_agent=judge_agent,
         max_rounds=2
     )
@@ -479,6 +523,7 @@ async def main():
     
     await pro_agent.close()
     await con_agent.close()
+    await moderator_agent.close()
     await judge_agent.close()
 
 if __name__ == "__main__":
